@@ -4,6 +4,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"strings"
 )
 
 type BookType int64
@@ -28,6 +30,7 @@ func generateId(title, bookMedium string, bookType BookType) string {
 type Book interface {
 	Details()
 	Borrow()
+	Return()
 	addBook() error
 	getAuthor() string
 	getBookType() BookType
@@ -55,14 +58,16 @@ func (book PhysicalBook) Details() {
 func (book PhysicalBook) Borrow(id string, quantity int, lib Library, borrower string) string {
 
 	if user, ok := lib.Users[borrower]; ok {
-		if user[id]+quantity > 5 {
-			return "Sorry, you're exceeding your borrow limit."
+		if _, okIn := user[id]; okIn {
+			return "Book already borrowed."
+		} else if quantity > 1 {
+			return "Cannot borrow more than 1 copy"
 		}
 	} else {
 		lib.addMember(borrower)
 	}
 
-	if details, ok := book.Inventory[id]; ok { //////needs to be improved
+	if details, ok := book.Inventory[id]; ok {
 		if details.quantity < quantity {
 			return "Not Enough Quantity\n"
 		} else {
@@ -76,14 +81,21 @@ func (book PhysicalBook) Borrow(id string, quantity int, lib Library, borrower s
 				return "Invalid Booktype for Physical Book\n"
 			}
 			updatedQuantity := details.quantity - quantity
-			if updatedQuantity == 0 {
-				delete(book.Inventory, id)
-			} else {
-				book.Inventory[id] = BookDetails{book.Inventory[id].title, book.Inventory[id].author, updatedQuantity, details.bookType, "Physical"}
-			}
+			book.Inventory[id] = BookDetails{book.Inventory[id].title, book.Inventory[id].author, updatedQuantity, details.bookType, "Physical"}
+			lib.Users[borrower][id] = quantity
+			return "Book Borrowed"
 		}
 	}
 	return "This book is not present in stock\n"
+}
+
+func (book PhysicalBook) Return(id string, quantity int, lib Library, borrower string) {
+
+	if details, ok := book.Inventory[id]; ok {
+		details.quantity += quantity
+		lib.Users[borrower][id] -= quantity
+	}
+	fmt.Println("Books Returned Successfully")
 }
 
 func (book PhysicalBook) addBook(title, author string, quantity int, bookType BookType) error {
@@ -99,7 +111,11 @@ func (book PhysicalBook) addBook(title, author string, quantity int, bookType Bo
 	}
 
 	id := generateId(title, "Physical", bookType)
-	book.Inventory[id] = BookDetails{title, author, quantity, bookType, "Physical"}
+	if _, ok := book.Inventory[id]; ok {
+		book.Inventory[id] = BookDetails{title, author, book.Inventory[id].quantity + quantity, bookType, "Physical"}
+	} else {
+		book.Inventory[id] = BookDetails{title, author, quantity, bookType, "Physical"}
+	}
 	return nil
 }
 
@@ -110,11 +126,17 @@ func (book PhysicalBook) getAuthor(id string) string {
 	return "This book is not present in Inventory"
 }
 
-func (book PhysicalBook) getBookType(id string) string {
-	if _, ok := book.Inventory[id]; ok {
-		return fmt.Sprintf("BookType of %v : %v", book.Inventory[id].title, book.Inventory[id].bookType) /////needs to be improved
+func (book PhysicalBook) getBookType(title string) {
+	flag := false
+	for _, details := range book.Inventory {
+		if details.title == title {
+			fmt.Printf("Title : %v, BookType : %v, BookMedium : %v", details.title, details.bookType, details.bookMedium)
+			flag = true
+		}
 	}
-	return "This book is not present in Inventory"
+	if !flag {
+		fmt.Println("This book is not present in Inventory")
+	}
 }
 
 func (book PhysicalBook) getQuantity(id string) string {
@@ -134,6 +156,47 @@ func (book DigitalBook) Details() {
 	}
 }
 
+func (book DigitalBook) Borrow(id string, quantity int, lib Library, borrower string) string {
+
+	if user, ok := lib.Users[borrower]; ok {
+		if user[id]+quantity > 5 {
+			return "Limit exceeded for borrowing books"
+		}
+	} else {
+		lib.addMember(borrower)
+	}
+
+	if details, ok := book.Inventory[id]; ok {
+		if details.quantity < quantity {
+			return "Not Enough Quantity\n"
+		} else {
+			switch details.bookType {
+			case Hardback:
+			case Paperback:
+			case Encyclopedia:
+			case Magazine:
+			case Comic:
+			default:
+				return "Invalid Booktype for Digital Book\n"
+			}
+			updatedQuantity := details.quantity - quantity
+			book.Inventory[id] = BookDetails{book.Inventory[id].title, book.Inventory[id].author, updatedQuantity, details.bookType, "Physical"}
+			lib.Users[borrower][id] += quantity
+			return "Book Borrowed"
+		}
+	}
+	return "This book is not present in stock\n"
+}
+
+func (book DigitalBook) Return(id string, quantity int, lib Library, borrower string) {
+
+	if details, ok := book.Inventory[id]; ok {
+		details.quantity += quantity
+		lib.Users[borrower][id] -= quantity
+	}
+	fmt.Println("Books Returned Successfully")
+}
+
 func (book DigitalBook) addBook(title, author string, quantity int, bookType BookType) error {
 
 	switch bookType {
@@ -146,8 +209,12 @@ func (book DigitalBook) addBook(title, author string, quantity int, bookType Boo
 		return fmt.Errorf("Invalid Booktype for Digital Book\n")
 	}
 
-	id := generateId(title, "Digital", bookType)
-	book.Inventory[id] = BookDetails{title, author, quantity, bookType, "Digital"}
+	id := generateId(title, "Physical", bookType)
+	if _, ok := book.Inventory[id]; ok {
+		book.Inventory[id] = BookDetails{title, author, book.Inventory[id].quantity + quantity, bookType, "Digital"}
+	} else {
+		book.Inventory[id] = BookDetails{title, author, quantity, bookType, "Digital"}
+	}
 	return nil
 }
 
@@ -158,11 +225,17 @@ func (book DigitalBook) getAuthor(id string) string {
 	return "This book is not present in Inventory"
 }
 
-func (book DigitalBook) getBookType(id string) string { //////needs to be improved
-	if _, ok := book.Inventory[id]; ok {
-		return fmt.Sprintf("BookType of %v : %v", book.Inventory[id].title, book.Inventory[id].bookType)
+func (book DigitalBook) getBookType(title string) {
+	flag := false
+	for _, details := range book.Inventory {
+		if details.title == title {
+			fmt.Printf("Title : %v, BookType : %v, BookMedium : %v", details.title, details.bookType, details.bookMedium)
+			flag = true
+		}
 	}
-	return "This book is not present in Inventory"
+	if !flag {
+		fmt.Println("This book is not present in Inventory")
+	}
 }
 
 func (book DigitalBook) getQuantity(id string) string {
@@ -180,12 +253,174 @@ func (lib Library) addMember(name string) {
 	lib.Users[name][""] = 0
 }
 
-func (lib Library) showInventory(b ...Book) {
-	b[0].Details()
-	b[1].Details()
+func GetBookType(title string, db DigitalBook, pb PhysicalBook) {
+	db.getBookType(title)
+	pb.getBookType(title)
+}
+
+func (lib Library) showInventory(db DigitalBook, pb PhysicalBook) {
+	pb.Details()
+	db.Details()
 }
 
 func main() {
+	var input int
+	var err error
+	flag := true
+	lib := Library{}
+	db := DigitalBook{}
+	pb := PhysicalBook{}
 	fmt.Printf("\t\t\t\t\t\t\tWELCOME TO THE LIBRARY\n\n\n\n")
+	for flag {
+		fmt.Println("What would you like to do?")
+		fmt.Println("1. Add Books to the Inventory")
+		fmt.Println("2. Give books to borrow")
+		fmt.Println("3. Receive back borrowed books")
+		fmt.Println("4. Get Quantity of a book")
+		fmt.Println("5. Get Author of a book")
+		fmt.Println("6. Get BookType of a book")
+		fmt.Println("7. Display the whole Inventory")
+		fmt.Println("8. Exit")
+		fmt.Printf("Enter Input : ")
+		fmt.Scan(&input)
+
+		switch input {
+		case 1:
+			var (
+				title, author, bookMedium string
+				quantity                  int
+				bookType                  BookType
+			)
+			fmt.Println("Enter the Details of the Book : ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			fmt.Printf("Author : ")
+			fmt.Scan(&author)
+			fmt.Printf("Quantity : ")
+			fmt.Scan(&quantity)
+			fmt.Printf("BookType : ")
+			fmt.Scan(&bookType)
+			fmt.Printf("BookMedium : ")
+			fmt.Scan(&bookMedium)
+			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
+				err = pb.addBook(title, author, quantity, bookType)
+			} else {
+				err = db.addBook(title, author, quantity, bookType)
+			}
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+		case 2:
+			var (
+				title, author, bookMedium, borrower string
+				quantity                            int
+				bookType                            BookType
+			)
+			fmt.Printf("Borrower Name : ")
+			fmt.Scan(&borrower)
+			fmt.Println("Enter the Details of the Book to be borrowed: ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			fmt.Printf("Author : ")
+			fmt.Scan(&author)
+			fmt.Printf("Quantity : ")
+			fmt.Scan(&quantity)
+			fmt.Printf("BookType : ")
+			fmt.Scan(&bookType)
+			fmt.Printf("BookMedium : ")
+			fmt.Scan(&bookMedium)
+			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
+				id := generateId(title, "Physical", bookType)
+				fmt.Println(pb.Borrow(id, quantity, lib, borrower))
+			} else {
+				id := generateId(title, "Digital", bookType)
+				fmt.Println(db.Borrow(id, quantity, lib, borrower))
+			}
+
+		case 3:
+			var (
+				title, author, bookMedium, borrower string
+				quantity                            int
+				bookType                            BookType
+			)
+			fmt.Printf("Borrower Name : ")
+			fmt.Scan(&borrower)
+			fmt.Println("Enter the Details of the Book to be returned: ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			fmt.Printf("Author : ")
+			fmt.Scan(&author)
+			fmt.Printf("Quantity : ")
+			fmt.Scan(&quantity)
+			fmt.Printf("BookType : ")
+			fmt.Scan(&bookType)
+			fmt.Printf("BookMedium : ")
+			fmt.Scan(&bookMedium)
+			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
+				id := generateId(title, "Physical", bookType)
+				pb.Return(id, quantity, lib, borrower)
+			} else {
+				id := generateId(title, "Digital", bookType)
+				db.Return(id, quantity, lib, borrower)
+			}
+
+		case 4:
+			var (
+				title, bookMedium string
+				bookType          BookType
+			)
+			fmt.Println("Enter the Details of the Book whose quantity you want to know: ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			fmt.Printf("BookType : ")
+			fmt.Scan(&bookType)
+			fmt.Printf("BookMedium : ")
+			fmt.Scan(&bookMedium)
+			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
+				id := generateId(title, "Physical", bookType)
+				fmt.Println(pb.getQuantity(id))
+			} else {
+				id := generateId(title, "Digital", bookType)
+				fmt.Println(db.getQuantity(id))
+			}
+
+		case 5:
+			var (
+				title, bookMedium string
+				bookType          BookType
+			)
+			fmt.Println("Enter the Details of the Book whose author you want to know: ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			fmt.Printf("BookType : ")
+			fmt.Scan(&bookType)
+			fmt.Printf("BookMedium : ")
+			fmt.Scan(&bookMedium)
+			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
+				id := generateId(title, "Physical", bookType)
+				fmt.Println(pb.getAuthor(id))
+			} else {
+				id := generateId(title, "Digital", bookType)
+				fmt.Println(db.getAuthor(id))
+			}
+
+		case 6:
+			var title string
+			fmt.Println("Enter the Title of the Book whose bookType you want to know: ")
+			fmt.Printf("Title : ")
+			fmt.Scan(&title)
+			GetBookType(title, db, pb)
+
+		case 7:
+			fmt.Println("Inventory : ")
+			lib.showInventory(db, pb)
+
+		default:
+			flag = false
+		}
+	}
+
+	fmt.Printf("\n\n\n\n\t\t\t\t\t\t\tTHANK YOU!!\n\t\t\t\t\t\t\tVISIT AGAIN :)\n\n\n")
 
 }
