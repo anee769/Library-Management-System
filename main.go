@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/anee769/Library-Management-Sytem/Library"
+	"github.com/anee769/Library-Management-System/Library"
 )
 
 func main() {
@@ -78,10 +78,10 @@ func main() {
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := common.generateId(title, "Physical", bookType)
+				id := Library.generateId(title, "Physical", bookType)
 				fmt.Println(pb.Borrow(id, quantity, lib, borrower))
 			} else {
-				id := common.generateId(title, "Digital", bookType)
+				id := Library.generateId(title, "Digital", bookType)
 				fmt.Println(db.Borrow(id, quantity, lib, borrower))
 			}
 
@@ -105,10 +105,10 @@ func main() {
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := common.generateId(title, "Physical", bookType)
+				id := Library.generateId(title, "Physical", bookType)
 				pb.Return(id, quantity, lib, borrower)
 			} else {
-				id := common.generateId(title, "Digital", bookType)
+				id := Library.generateId(title, "Digital", bookType)
 				db.Return(id, quantity, lib, borrower)
 			}
 
@@ -125,10 +125,10 @@ func main() {
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := common.generateId(title, "Physical", bookType)
+				id := Library.generateId(title, "Physical", bookType)
 				fmt.Println(pb.getQuantity(id))
 			} else {
-				id := common.generateId(title, "Digital", bookType)
+				id := Library.generateId(title, "Digital", bookType)
 				fmt.Println(db.getQuantity(id))
 			}
 
@@ -145,10 +145,10 @@ func main() {
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := common.generateId(title, "Physical", bookType)
+				id := Library.generateId(title, "Physical", bookType)
 				fmt.Println(pb.getAuthor(id))
 			} else {
-				id := common.generateId(title, "Digital", bookType)
+				id := Library.generateId(title, "Digital", bookType)
 				fmt.Println(db.getAuthor(id))
 			}
 

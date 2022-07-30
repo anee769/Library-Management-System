@@ -1,6 +1,8 @@
 package Library
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type DigitalBook struct {
 	Inventory map[string]BookDetails
