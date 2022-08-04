@@ -12,14 +12,15 @@ func main() {
 	var input int
 	var err error
 	flag := true
-	lib := Library.Library{}
-	db := Library.DigitalBook{}
-	pb := Library.PhysicalBook{}
-	fmt.Printf("\t\t\t\t\t\t\tWELCOME TO THE LIBRARY\n\n\n\n")
+	lib, err := Library.NewLibrary()
+
+	defer lib.Stop()
+
+	fmt.Printf("\n\n\n\t\t\t\t\t\t\tWELCOME TO THE LIBRARY\n\n\n\n")
 	fmt.Println("Codes for booktypes : ")
-	fmt.Printf("1. eBook : %v\n2. AudioBook : %v\n3. HardBack : %v\n4. PaperBack : %v\n5. Encyclopedia : %v\n6. Magazine : %v\n7. Comic : %v\n\n\n", eBook, Audiobook, Hardback, Paperback, Encyclopedia, Magazine, Comic)
+	fmt.Printf("1. eBook : %v\n2. AudioBook : %v\n3. HardBack : %v\n4. PaperBack : %v\n5. Encyclopedia : %v\n6. Magazine : %v\n7. Comic : %v\n\n\n", Library.EBook, Library.Audiobook, Library.Hardback, Library.Paperback, Library.Encyclopedia, Library.Magazine, Library.Comic)
 	for flag {
-		fmt.Println("What would you like to do?")
+		fmt.Println("\nWhat would you like to do?")
 		fmt.Println("1. Add Books to the Inventory")
 		fmt.Println("2. Give books to borrow")
 		fmt.Println("3. Receive back borrowed books")
@@ -27,7 +28,8 @@ func main() {
 		fmt.Println("5. Get Author of a book")
 		fmt.Println("6. Get BookType of a book")
 		fmt.Println("7. Display the whole Inventory")
-		fmt.Println("8. Exit")
+		fmt.Println("8. Display the Registered users")
+		fmt.Println("9. Exit")
 		fmt.Printf("Enter Input : ")
 		fmt.Scan(&input)
 
@@ -41,18 +43,23 @@ func main() {
 			fmt.Println("Enter the Details of the Book : ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
+			fmt.Println()
 			fmt.Printf("Author : ")
 			fmt.Scan(&author)
+			fmt.Println()
 			fmt.Printf("Quantity : ")
 			fmt.Scan(&quantity)
+			fmt.Println()
 			fmt.Printf("BookType : ")
 			fmt.Scan(&bookType)
+			fmt.Println()
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
+			fmt.Println()
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				err = pb.addBook(title, author, quantity, bookType)
+				err = lib.Pb.AddBook(title, author, quantity, bookType)
 			} else {
-				err = db.addBook(title, author, quantity, bookType)
+				err = lib.Db.AddBook(title, author, quantity, bookType)
 			}
 			if err != nil {
 				log.Fatalln(err)
@@ -69,20 +76,25 @@ func main() {
 			fmt.Println("Enter the Details of the Book to be borrowed: ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
+			fmt.Println()
 			fmt.Printf("Author : ")
 			fmt.Scan(&author)
+			fmt.Println()
 			fmt.Printf("Quantity : ")
 			fmt.Scan(&quantity)
+			fmt.Println()
 			fmt.Printf("BookType : ")
 			fmt.Scan(&bookType)
+			fmt.Println()
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
+			fmt.Println()
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := Library.generateId(title, "Physical", bookType)
-				fmt.Println(pb.Borrow(id, quantity, lib, borrower))
+				id := Library.GenerateId(title, "Physical", bookType)
+				fmt.Println(lib.Pb.Borrow(id, quantity, lib, borrower))
 			} else {
-				id := Library.generateId(title, "Digital", bookType)
-				fmt.Println(db.Borrow(id, quantity, lib, borrower))
+				id := Library.GenerateId(title, "Digital", bookType)
+				fmt.Println(lib.Db.Borrow(id, quantity, lib, borrower))
 			}
 
 		case 3:
@@ -96,20 +108,25 @@ func main() {
 			fmt.Println("Enter the Details of the Book to be returned: ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
+			fmt.Println()
 			fmt.Printf("Author : ")
 			fmt.Scan(&author)
+			fmt.Println()
 			fmt.Printf("Quantity : ")
 			fmt.Scan(&quantity)
+			fmt.Println()
 			fmt.Printf("BookType : ")
 			fmt.Scan(&bookType)
+			fmt.Println()
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
+			fmt.Println()
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := Library.generateId(title, "Physical", bookType)
-				pb.Return(id, quantity, lib, borrower)
+				id := Library.GenerateId(title, "Physical", bookType)
+				lib.Pb.Return(id, quantity, lib, borrower)
 			} else {
-				id := Library.generateId(title, "Digital", bookType)
-				db.Return(id, quantity, lib, borrower)
+				id := Library.GenerateId(title, "Digital", bookType)
+				lib.Db.Return(id, quantity, lib, borrower)
 			}
 
 		case 4:
@@ -120,16 +137,19 @@ func main() {
 			fmt.Println("Enter the Details of the Book whose quantity you want to know: ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
+			fmt.Println()
 			fmt.Printf("BookType : ")
 			fmt.Scan(&bookType)
+			fmt.Println()
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
+			fmt.Println()
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := Library.generateId(title, "Physical", bookType)
-				fmt.Println(pb.getQuantity(id))
+				id := Library.GenerateId(title, "Physical", bookType)
+				fmt.Println(lib.Pb.GetQuantity(id))
 			} else {
-				id := Library.generateId(title, "Digital", bookType)
-				fmt.Println(db.getQuantity(id))
+				id := Library.GenerateId(title, "Digital", bookType)
+				fmt.Println(lib.Db.GetQuantity(id))
 			}
 
 		case 5:
@@ -140,16 +160,19 @@ func main() {
 			fmt.Println("Enter the Details of the Book whose author you want to know: ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
+			fmt.Println()
 			fmt.Printf("BookType : ")
 			fmt.Scan(&bookType)
+			fmt.Println()
 			fmt.Printf("BookMedium : ")
 			fmt.Scan(&bookMedium)
+			fmt.Println()
 			if bookMedium = strings.Trim(strings.ToLower(bookMedium), " "); bookMedium == "physical" {
-				id := Library.generateId(title, "Physical", bookType)
-				fmt.Println(pb.getAuthor(id))
+				id := Library.GenerateId(title, "Physical", bookType)
+				fmt.Println(lib.Pb.GetAuthor(id))
 			} else {
-				id := Library.generateId(title, "Digital", bookType)
-				fmt.Println(db.getAuthor(id))
+				id := Library.GenerateId(title, "Digital", bookType)
+				fmt.Println(lib.Db.GetAuthor(id))
 			}
 
 		case 6:
@@ -157,11 +180,13 @@ func main() {
 			fmt.Println("Enter the Title of the Book whose bookType you want to know: ")
 			fmt.Printf("Title : ")
 			fmt.Scan(&title)
-			Library.GetBookType(title, db, pb)
+			lib.GetBookType(title)
 
 		case 7:
-			fmt.Println("Inventory : ")
-			lib.showInventory(db, pb)
+			lib.ShowInventory()
+
+		case 8:
+			lib.ShowUsers()
 
 		default:
 			flag = false

@@ -3,7 +3,7 @@ package Library
 type BookType int64
 
 const (
-	eBook BookType = iota
+	EBook BookType = iota
 	Audiobook
 	Hardback
 	Paperback

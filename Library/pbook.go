@@ -6,13 +6,17 @@ type PhysicalBook struct {
 	Inventory map[string]BookDetails
 }
 
-func (book PhysicalBook) Details() {
+func NewPhysicalBook() *PhysicalBook {
+	return &PhysicalBook{make(map[string]BookDetails)}
+}
+
+func (book *PhysicalBook) Details() {
 	for _, details := range book.Inventory {
 		fmt.Printf("Title : %v\nAuthor : %v\nStock left : %v\nBookType : %v\nBookMedium : %v\n\n", details.title, details.author, details.quantity, details.bookType, details.bookMedium)
 	}
 }
 
-func (book PhysicalBook) Borrow(id string, quantity int, lib Library, borrower string) string {
+func (book *PhysicalBook) Borrow(id string, quantity int, lib *Library, borrower string) string {
 
 	for _, books := range lib.Users {
 		if _, ok := books[id]; ok {
@@ -25,7 +29,7 @@ func (book PhysicalBook) Borrow(id string, quantity int, lib Library, borrower s
 			return "Limit exceeded for borrowing books"
 		}
 	} else {
-		lib.addMember(borrower)
+		lib.AddMember(borrower)
 	}
 
 	if details, ok := book.Inventory[id]; ok {
@@ -50,19 +54,18 @@ func (book PhysicalBook) Borrow(id string, quantity int, lib Library, borrower s
 	return "This book is not present in stock\n"
 }
 
-func (book PhysicalBook) Return(id string, quantity int, lib Library, borrower string) {
+func (book *PhysicalBook) Return(id string, quantity int, lib *Library, borrower string) {
 
-	if details, ok := book.Inventory[id]; ok {
-		details.quantity += quantity
-		lib.Users[borrower][id] -= quantity
-		if lib.Users[borrower][id] == 0 {
-			delete(lib.Users[borrower], id)
-		}
+	updatedQuantity := book.Inventory[id].quantity + quantity
+	book.Inventory[id] = BookDetails{book.Inventory[id].title, book.Inventory[id].author, updatedQuantity, book.Inventory[id].bookType, book.Inventory[id].bookMedium}
+	lib.Users[borrower][id] -= quantity
+	if lib.Users[borrower][id] == 0 {
+		delete(lib.Users[borrower], id)
 	}
 	fmt.Println("Books Returned Successfully")
 }
 
-func (book PhysicalBook) addBook(title, author string, quantity int, bookType BookType) error {
+func (book *PhysicalBook) AddBook(title, author string, quantity int, bookType BookType) error {
 
 	switch bookType {
 	case Hardback:
@@ -74,7 +77,7 @@ func (book PhysicalBook) addBook(title, author string, quantity int, bookType Bo
 		return fmt.Errorf("Invalid Booktype for Physical Book\n")
 	}
 
-	id := generateId(title, "Physical", bookType)
+	id := GenerateId(title, "Physical", bookType)
 	if _, ok := book.Inventory[id]; ok {
 		book.Inventory[id] = BookDetails{title, author, book.Inventory[id].quantity + quantity, bookType, "Physical"}
 	} else {
@@ -83,29 +86,24 @@ func (book PhysicalBook) addBook(title, author string, quantity int, bookType Bo
 	return nil
 }
 
-func (book PhysicalBook) getAuthor(id string) string {
+func (book *PhysicalBook) GetAuthor(id string) string {
 	if _, ok := book.Inventory[id]; ok {
-		return fmt.Sprintf("Author of %v : %v", book.Inventory[id].title, book.Inventory[id].author)
+		return fmt.Sprintf("Author of %v : %v\n", book.Inventory[id].title, book.Inventory[id].author)
 	}
-	return "This book is not present in Inventory"
+	return "This book is not present in Inventory\n"
 }
 
-func (book PhysicalBook) getBookType(title string) {
-	flag := false
+func (book *PhysicalBook) GetBookType(title string) {
 	for _, details := range book.Inventory {
 		if details.title == title {
-			fmt.Printf("Title : %v, BookType : %v, BookMedium : %v", details.title, details.bookType, details.bookMedium)
-			flag = true
+			fmt.Printf("Title : %v, BookType : %v, BookMedium : %v\n", details.title, details.bookType, details.bookMedium)
 		}
-	}
-	if !flag {
-		fmt.Println("This book is not present in Inventory")
 	}
 }
 
-func (book PhysicalBook) getQuantity(id string) string {
+func (book *PhysicalBook) GetQuantity(id string) string {
 	if _, ok := book.Inventory[id]; ok {
-		return fmt.Sprintf("Stock left for %v : %v", book.Inventory[id].title, book.Inventory[id].quantity)
+		return fmt.Sprintf("Stock left for %v : %v\n", book.Inventory[id].title, book.Inventory[id].quantity)
 	}
-	return "This book is not present in Inventory"
+	return "This book is not present in Inventory\n"
 }
